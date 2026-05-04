@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chatbot Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 90vh;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        
+        .status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #4ade80;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+
+        /* chat-container fills the area; sidebar removed to restore original layout */
+        
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            gap: 10px;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .message.user {
+            flex-direction: row-reverse;
+        }
+        
+        .message-bubble {
+            max-width: 70%;
+            padding: 12px 18px;
+            border-radius: 18px;
+            word-wrap: break-word;
+        }
+        
+        .message.user .message-bubble {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .message.assistant .message-bubble {
+            background: white;
+            color: #333;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .typing-indicator {
+            display: none;
+            padding: 10px;
+            background: white;
+            border-radius: 18px;
+            width: fit-content;
+        }
+        
+        .typing-indicator.active {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+        
+        .typing-indicator span {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: #667eea;
+            border-radius: 50%;
+            margin: 0 2px;
+            animation: typing 1.4s infinite;
+        }
+        
+        .typing-indicator span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        
+        .typing-indicator span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-10px); }
+        }
+        
+        .input-container {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .vendor-input {
+            flex: 0 0 150px;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 14px;
+            outline: none;
+        }
+        
+        #messageInput {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 14px;
+            outline: none;
+            font-family: inherit;
+        }
+        
+        #messageInput:focus, .vendor-input:focus {
+            border-color: #667eea;
+        }
+        
+        #sendButton {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+        
+        #sendButton:hover {
+            transform: scale(1.05);
+        }
+        
+        #sendButton:active {
+            transform: scale(0.95);
+        }
+        
+        .tool-calls {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f3f4f6;
+            border-radius: 8px;
+            font-size: 12px;
+        }
+        
+        .tool-call {
+            margin: 5px 0;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <!-- Floating session info panel (fixed outside the chat window) -->
+    <div id="sessionInfoPanel" style="position:fixed;top:20px;right:20px;z-index:9999;background:#fff7ed;padding:12px 16px;border-radius:10px;border:1px solid #f3e5d5;box-shadow:0 6px 18px rgba(0,0,0,0.12);">
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+            <div><strong>vendor_id:</strong> <span id="infoVendor">-</span></div>
+            <div><strong>tokens (input-hidden-output):</strong> <span id="infoTokens">-</span></div>
+            <div><strong>tools:</strong> <span id="infoTools">-</span></div>
+        </div>
+    </div>
+    <div class="container">
+        <div class="header">
+            <h1> مساعد البائعين الذكي</h1>
+            <div class="status">
+                <span class="status-dot"></span>
+                <span id="statusText">متصل</span>
+            </div>
+        </div>
+        
+        
+        <div class="chat-container" id="chatContainer">
+            <div class="message assistant">
+                <div class="message-bubble">
+                    مرحباً! أنا مساعدك الذكي. كيف يمكنني مساعدتك اليوم؟
+                </div>
+            </div>
+        </div>
+        
+        <div class="input-container">
+            <input 
+                type="text" 
+                class="vendor-input" 
+                id="vendorId" 
+                placeholder="Vendor ID"
+                value="123"
+            >
+            <!-- connect button removed; vendor id used on page load and reconnect stays automatic -->
+            <input 
+                type="text" 
+                id="messageInput" 
+                placeholder="اكتب رسالتك هنا..."
+            >
+            <button id="sendButton" onclick="sendMessage()">إرسال</button>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let sessionId = null;
+        let currentVendorId = document.getElementById('vendorId').value || '123';
+
+        function connect() {
+            const vendorId = document.getElementById('vendorId').value || '123';
+            currentVendorId = vendorId;
+            document.getElementById('infoVendor').textContent = currentVendorId;
+            ws = new WebSocket(`ws://localhost:8005/ws/${vendorId}`);
+            
+            // send any pending messages once connected
+            ws.onopen = () => {
+                console.log('Connected to WebSocket');
+                updateStatus('متصل', true);
+                flushPendingMessages();
+            };
+            
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                console.log('Received:', data);
+                
+                if (data.type === 'connected') {
+                    sessionId = data.session_id;
+                    console.log('Session ID:', sessionId);
+                } else if (data.type === 'response') {
+                    hideTyping();
+                    // data may contain tokens and tool_calls
+                    const tokens = data.tokens || null;
+                    const tools = (data.tool_calls || []).map(tc => tc.tool);
+                    // Update the outside info panel
+                    updateSessionInfo(currentVendorId, tokens, tools);
+                    addMessage(data.response, 'assistant', data.tool_calls, tokens);
+                } else if (data.type === 'stream') {
+                    // Handle streaming
+                    hideTyping();
+                    appendToLastMessage(data.content);
+                } else if (data.type === 'complete') {
+                    console.log('Stream complete');
+                } else if (data.type === 'error') {
+                    hideTyping();
+                    addMessage('عذراً، حدث خطأ: ' + data.message, 'assistant');
+                }
+            };
+            
+            ws.onclose = () => {
+                console.log('Disconnected from WebSocket');
+                updateStatus('غير متصل', false);
+                setTimeout(connect, 3000); // Auto-reconnect (original behavior)
+            };
+            
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                updateStatus('خطأ في الاتصال', false);
+            };
+        }
+        
+        // pending message queue used when connection is not yet open
+        const pendingMessages = [];
+
+        function flushPendingMessages() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) return;
+            while (pendingMessages.length > 0) {
+                const payload = pendingMessages.shift();
+                ws.send(JSON.stringify(payload));
+            }
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+
+            if (!message) return;
+
+            addMessage(message, 'user');
+            showTyping();
+
+            // update info panel immediately with vendor and clear tokens/tools
+            document.getElementById('infoVendor').textContent = currentVendorId || (document.getElementById('vendorId').value || '-');
+            updateSessionInfo(currentVendorId, null, []);
+
+            const payload = { message: message, stream: false };
+
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify(payload));
+            } else {
+                // queue message and (re)connect using current vendorId
+                pendingMessages.push(payload);
+                connect();
+            }
+
+            input.value = '';
+        }
+
+        // vendorId change listener removed; connection uses current vendorId on page load and reconnects automatically
+        
+        function addMessage(text, sender, toolCalls = null, tokens = null) {
+            const chatContainer = document.getElementById('chatContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+            // Only display the message bubble inside chat; tokens/tools are shown in the floating panel
+            messageDiv.innerHTML = `<div class="message-bubble">${text}</div>`;
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+        
+        function showTyping() {
+            const chatContainer = document.getElementById('chatContainer');
+            let indicator = document.querySelector('.typing-indicator');
+            
+            if (!indicator) {
+                indicator = document.createElement('div');
+                indicator.className = 'typing-indicator';
+                indicator.innerHTML = '<span></span><span></span><span></span>';
+                chatContainer.appendChild(indicator);
+            }
+            
+            indicator.classList.add('active');
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+        
+        function hideTyping() {
+            const indicator = document.querySelector('.typing-indicator');
+            if (indicator) {
+                indicator.classList.remove('active');
+            }
+        }
+        
+        function updateStatus(text, connected) {
+            document.getElementById('statusText').textContent = text;
+            const dot = document.querySelector('.status-dot');
+            dot.style.background = connected ? '#4ade80' : '#ef4444';
+        }
+
+        function updateSessionInfo(vendorId, tokens, tools) {
+            // vendorId: string
+            // tokens: {input: number, output: number, total?: number, hidden?: number}
+            // tools: array of tool names
+            document.getElementById('infoVendor').textContent = vendorId || '-';
+
+            let input = 'N/A', output = 'N/A', hidden = 'N/A', total = 'N/A';
+            if (tokens) {
+                if (tokens.input !== undefined) input = tokens.input;
+                if (tokens.output !== undefined) output = tokens.output;
+                if (tokens.hidden !== undefined) hidden = tokens.hidden;
+                else if (tokens.total !== undefined && tokens.input !== undefined && tokens.output !== undefined) {
+                    hidden = tokens.total - (tokens.input + tokens.output);
+                }
+                if (tokens.total !== undefined) total = tokens.total;
+                else if (typeof input === 'number' && typeof hidden === 'number' && typeof output === 'number') {
+                    total = input + hidden + output;
+                }
+            }
+            document.getElementById('infoTokens').textContent = `${input} - ${hidden} - ${output} (total: ${total})`;
+
+            if (Array.isArray(tools) && tools.length > 0) {
+                document.getElementById('infoTools').textContent = tools.join(', ');
+            } else {
+                document.getElementById('infoTools').textContent = '-';
+            }
+        }
+
+        // Data flow sidebar removed; only tokens are shown under assistant messages.
+        
+        // Handle Enter key
+        document.getElementById('messageInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+        
+        // Do not auto-connect on load; connection happens when first message is sent (uses current vendorId)
+    </script>
+</body>
+</html>
