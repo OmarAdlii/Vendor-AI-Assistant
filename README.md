@@ -141,5 +141,9 @@ Notes and tips
 ```bash
 uvicorn app.main:app --host 0.0.0.0 --port 8005 --reload
 ```
+---
 
+## 👨‍💻 Author
+Developed by **Omar Adly**  
+For AI-driven product validation and verification 🚀
 
