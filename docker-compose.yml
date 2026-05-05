@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+
+  postgres-main:
+    image: postgres:15
+    container_name: postgres-main
+    environment:
+      POSTGRES_DB: vmbe
+      POSTGRES_USER: vendor
+      POSTGRES_PASSWORD: vendorpass
+    ports:
+      - "5433:5432"   
+    volumes:
+      - postgres-main-data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vendor -d vmbe"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  
+  postgres-chat:
+    image: postgres:15
+    container_name: postgres-chat
+    environment:
+      POSTGRES_DB: chatAi
+      POSTGRES_USER: chatuser
+      POSTGRES_PASSWORD: chatpass
+    ports:
+      - "5434:5432"   
+    volumes:
+      - postgres-chat-data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chatuser -d chatAi"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+ 
+  app:
+    build: .
+    container_name: fastapi-app
+    ports:
+      - "8005:8005"
+    env_file:
+      - .env
+    environment:
+      
+      POSTGRES_HOST: postgres-main
+      CHAT_DB_HOST: postgres-chat
+     
+    depends_on:
+      postgres-main:
+        condition: service_healthy
+      postgres-chat:
+        condition: service_healthy
+    networks:
+      - app-network
+    volumes:
+      
+      - ./:/app
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  postgres-main-data:
+  postgres-chat-data:
