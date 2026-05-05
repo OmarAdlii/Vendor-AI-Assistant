@@ -142,6 +142,4 @@ Notes and tips
 uvicorn app.main:app --host 0.0.0.0 --port 8005 --reload
 ```
 
-Contact
 
-If you want, I can commit this README or expand sections (DB init scripts, Docker, or examples).
