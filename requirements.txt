@@ -1,0 +1,39 @@
+# FastAPI & WebSocket
+fastapi
+uvicorn
+websockets
+python-multipart
+asyncpg
+
+# AI & LLM
+openai
+langchain
+langchain-openai
+langchain-community
+
+# Database
+psycopg2-binary
+asyncpg
+sqlalchemy
+
+# Vector Store
+supabase
+sentence-transformers
+
+# Document Processing
+pypdf
+python-docx
+pandas
+openpyxl
+
+# MCP Protocol
+mcp
+httpx
+
+# Utilities
+python-dotenv
+pydantic
+pydantic-settings
+redis
+streamlit
+plotly
